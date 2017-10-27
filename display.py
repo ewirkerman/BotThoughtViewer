@@ -1,9 +1,9 @@
 import pygame
 import logging
 from shapely.geometry import Point
-from hlt import constants, collision
+
 logger = logging.getLogger("display")
-logger.setLevel(constants.GLOBAL_LOGGING_LEVEL)
+logger.setLevel(logging.DEBUG)
 
 
 class Display():
@@ -14,6 +14,7 @@ class Display():
 
         # It won't create any folders for you
         # It'll plug in the turn number for you when it saves it
+        # Expects self.game.turn_num to have the current turn number to plug in here
         self.FILENAME_FORMAT = "stats/botthought%s.jpeg"
 
         # Width of the pygame window, height is proportioned to match that of the game_map
@@ -22,8 +23,8 @@ class Display():
         self.displayy = self.displayx * self.ratio
 
         # Comes with a minimap while zoomed in.
-        self.minimapx = self.displayx/4
-        self.minimapy = self.displayy/4
+        self.minimapx = self.displayx / 4
+        self.minimapy = self.displayy / 4
         size = [self.displayx, int(self.displayy)]
         self.screen = pygame.display.set_mode(size)
         self.clear()
@@ -37,10 +38,10 @@ class Display():
         self.focus_box = 30
         if focus_ship:
             logger.debug("Found focus ship")
-            self.focus = focus_ship.coords()
+            self.focus = (focus_ship.x, focus_ship.y)
         else:
             # Or if you want to focus on a certain game_map spot, enter that here
-            self.focus = (117.0626,67.3018)
+            self.focus = (117.0626, 67.3018)
 
     def _get_screen(self):
         return self.screen
@@ -61,6 +62,7 @@ class Display():
                         raise Exception("Quitting via pygame")
                     elif event.key == pygame.K_c and pygame.key.get_mods() & pygame.KMOD_CONTROL:
                         raise Exception("Quitting via pygame")
+
     def get_color(self, ent):
         if not ent.owner:
             color = (0, 0, 0)
@@ -68,7 +70,7 @@ class Display():
             if ent.owner == self.game_map.get_me():
                 color = (0, 0, 255)
             else:
-                color = (255,64 * ent.owner.id,255 - 64 * ent.owner.id)
+                color = (255, 64 * ent.owner.id, 255 - 64 * ent.owner.id)
         else:
             color = ent.owner.color
         return color
@@ -91,8 +93,8 @@ class Display():
                 self.screen.blit(label, self._scale_point((p.x, p.y - 3)))
 
         if self.zoom:
-            pygame.draw.line(self.screen, (0,0,0), (0, self.minimapy), (self.minimapx, self.minimapy), 1)
-            pygame.draw.line(self.screen, (0,0,0), (self.minimapx, 0), (self.minimapx, self.minimapy), 1)
+            pygame.draw.line(self.screen, (0, 0, 0), (0, self.minimapy), (self.minimapx, self.minimapy), 1)
+            pygame.draw.line(self.screen, (0, 0, 0), (self.minimapx, 0), (self.minimapx, self.minimapy), 1)
 
         pygame.display.flip()
 
@@ -106,18 +108,17 @@ class Display():
         x, y = tup
         if not self.zoom:
             scale = self.displayx / self.game_map.width
-            return x * scale , y * scale
+            return x * scale, y * scale
         else:
             low_x = self.focus[0] - self.focus_box
             low_y = self.focus[1] - self.focus_box * self.ratio
-            scale = self.displayx/(2 * self.focus_box)
-            return (x - low_x) * scale  , (y - low_y) * scale
+            scale = self.displayx / (2 * self.focus_box)
+            return (x - low_x) * scale, (y - low_y) * scale
 
     def _scale_mini(self, tup):
         x, y = tup
         scale = self.minimapx / self.game_map.width
-        return x * scale , y * scale
-
+        return x * scale, y * scale
 
     def draw_line(self, start, end, color=(0, 0, 0), width=1, scale_func=None):
         if scale_func is None:
